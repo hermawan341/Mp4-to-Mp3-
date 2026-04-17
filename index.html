@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MP4 to MP3 Converter</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* CSS Variables untuk warna khas ala Saweria */
+        :root {
+            --bg-color: #f0f0f0;
+            --card-bg: #ffffff;
+            --primary: #FFD100; /* Kuning khas */
+            --primary-hover: #e6bc00;
+            --border-color: #111111;
+            --text-color: #111111;
+            --shadow-offset: 6px;
+        }
+
+        /* Reset & Hilangkan Kotak Biru (Tap Highlight) */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        *:focus {
+            outline: none;
+        }
+
+        body {
+            font-family: 'IBM Plex Mono', monospace, 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#d5d5d5 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Container Utama dengan efek 3D Statis */
+        .card {
+            background: var(--card-bg);
+            border: 3px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: var(--shadow-offset) var(--shadow-offset) 0px var(--border-color);
+            width: 100%;
+            max-width: 420px;
+            padding: 30px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+
+        .header {
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* Area Upload Drag & Drop */
+        .upload-area {
+            border: 3px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 40px 20px;
+            cursor: pointer;
+            background: #fdfdfd;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            background: #fafafa;
+            transform: scale(1.02);
+        }
+
+        .upload-area i {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .upload-area p {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .upload-area span {
+            font-size: 0.75rem;
+            color: #666;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Tombol ala Saweria (3D Click Effect) */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            border: 3px solid var(--border-color);
+            border-radius: 8px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text-color);
+            cursor: pointer;
+            box-shadow: 4px 4px 0px var(--border-color);
+            transition: all 0.1s ease-in-out;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .btn:active {
+            box-shadow: 0px 0px 0px var(--border-color);
+            transform: translate(4px, 4px);
+        }
+
+        .btn.disabled {
+            background: #ddd;
+            cursor: not-allowed;
+            box-shadow: 4px 4px 0px var(--border-color);
+            transform: none;
+        }
+
+        /* Area Status & Audio Player */
+        #statusArea {
+            margin-top: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        #resultArea {
+            display: none;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 3px dashed var(--border-color);
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            word-break: break-all;
+            background: #eee;
+            padding: 10px;
+            border-radius: 6px;
+            border: 2px solid var(--border-color);
+        }
+
+        audio {
+            width: 100%;
+            height: 40px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+
+        /* Animasi Loading Spin */
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .spin { animation: spin 1s linear infinite; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="header">
+            <h1><i class="ph ph-waveform"></i> MP4 to MP3</h1>
+        </div>
+
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+            <i class="ph ph-upload-simple"></i>
+            <p id="uploadText">Pilih atau Tarik Video .MP4</p>
+            <span>Maksimal 50MB</span>
+        </div>
+        <input type="file" id="fileInput" accept="video/mp4" onchange="handleFile(this.files[0])">
+
+        <div id="statusArea">
+            <i class="ph ph-spinner-gap spin" style="font-size: 1.5rem;"></i>
+            <p style="margin-top: 10px;" id="statusText">Memproses...</p>
+        </div>
+
+        <div id="resultArea">
+            <div class="file-info">
+                <i class="ph ph-file-audio"></i>
+                <span id="fileName">audio_result.mp3</span>
+            </div>
+            
+            <audio id="audioPlayer" controls></audio>
+            
+            <a href="#" id="downloadBtn" class="btn" download>
+                <i class="ph ph-download-simple"></i> Download MP3
+            </a>
+            
+            <button class="btn" style="background: #fff; margin-top: 10px;" onclick="resetUI()">
+                <i class="ph ph-arrows-clockwise"></i> Konversi Lagi
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const uploadText = document.getElementById('uploadText');
+        const statusArea = document.getElementById('statusArea');
+        const resultArea = document.getElementById('resultArea');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const fileNameDisplay = document.getElementById('fileName');
+
+        // Fitur Drag & Drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = '#fafafa';
+            uploadArea.style.transform = 'scale(1.02)';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.background = '#fdfdfd';
+            uploadArea.style.transform = 'scale(1)';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = '#fdfdfd';
+            uploadArea.style.transform = 'scale(1)';
+            if(e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file) return;
+
+            // Cek format (Pencegahan Pop-up sistem, gunakan inline text)
+            if (file.type !== "video/mp4" && !file.name.toLowerCase().endsWith('.mp4')) {
+                uploadText.innerHTML = '<span style="color: red;"><i class="ph ph-warning-circle"></i> Hanya format .MP4 yang diizinkan!</span>';
+                return;
+            }
+
+            // Ubah UI ke mode loading
+            uploadArea.style.display = 'none';
+            statusArea.style.display = 'block';
+            resultArea.style.display = 'none';
+
+            // Nama file output (ubah ekstensi jadi .mp3)
+            let newName = file.name.replace(/\.[^/.]+$/, "") + ".mp3";
+            fileNameDisplay.innerText = newName;
+
+            // Simulasi proses ekstrak audio dengan delay agar UI terlihat interaktif
+            setTimeout(() => {
+                // Membuat URL objek dari file MP4 (Browser cerdas, tag <audio> otomatis hanya memutar audionya saja)
+                const objectUrl = URL.createObjectURL(file);
+                
+                audioPlayer.src = objectUrl;
+                downloadBtn.href = objectUrl;
+                downloadBtn.download = newName;
+
+                // Tampilkan hasil
+                statusArea.style.display = 'none';
+                resultArea.style.display = 'block';
+            }, 1500); // 1.5 detik animasi loading
+        }
+
+        function resetUI() {
+            document.getElementById('fileInput').value = "";
+            uploadArea.style.display = 'block';
+            resultArea.style.display = 'none';
+            uploadText.innerText = "Pilih atau Tarik Video .MP4";
+            
+            // Hapus cache memori audio
+            if(audioPlayer.src) {
+                URL.revokeObjectURL(audioPlayer.src);
+                audioPlayer.src = "";
+            }
+        }
+    </script>
+</body>
+</html>
